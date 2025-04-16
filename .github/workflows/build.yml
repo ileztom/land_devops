@@ -1,0 +1,30 @@
+name: Deploy appllication to enviroments
+on:
+  workflow_call:
+    
+jobs: 
+  build:
+    permissions:
+      pull-requests: write
+      repository-projects: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare enviroments
+        run: |
+          echo "start build application"
+      
+      # checkout on branch 
+      - name: Сheckout on [release]
+        uses: actions/checkout@v2
+
+      # append comment to PR
+      - name: Comment about build application 
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Сборка проекта проейдена успешно. Сформирован релиз.'
+            })

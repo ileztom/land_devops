@@ -1,0 +1,142 @@
+name: Deploy appllication to enviroments
+on:
+  workflow_call:
+    inputs:  
+      version:
+        type: string
+        required: true
+        description: "Version of application. Tag from gitlab"
+      container_name:
+        type: string
+        required: true
+        description: "Name of container."
+    secrets:
+      DOCKER_USERNAME:
+        required: true
+        description: ''
+  
+# declare version of application 
+env:
+  TAG: ${{ inputs.version || 'latest' }}
+  CONTAINER_NAME: ${{ inputs.container_name || 'land_devops:v0.16.23'}}
+  PROD_ENV: "prod.env"
+  IMAGE_NAME: ${{secrets.DOCKER_USERNAME}}/${{ inputs.container_name}}:${{inputs.version}} 
+  LABEL_PROD: "PROD"
+  LABEL_EX_PROD: "EX_PROD"
+
+# jobs for deploy applications 
+jobs: 
+  deploy-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev,test,stage]
+    steps:
+      - name: Deploy to stands
+        run: echo "start on ${{matrix.environment}}"
+
+  # special job for deploy to prod
+  deploy-prod: 
+    environment: prod
+    runs-on: self-hosted
+    name: PROD
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+      id-token: write
+    steps:
+      # checkout 
+      - name: checkout on release branch
+        uses: actions/checkout@v2
+  
+      # get data about container
+      - name: List data about container 
+        run: | 
+          docker ps -a 
+          docker image ls
+      
+      # create file prod.env file for deploy application 
+      - name: Create .ENV
+        shell: powershell
+        run : |
+          New-Item ${{ env.PROD_ENV }} -ItemType file -Force
+          Add-Content ${{ env.PROD_ENV }} "VERSION=${{ env.TAG }}"
+          Add-Content ${{ env.PROD_ENV }} "CONTAINER_NAME=${{ env.CONTAINER_NAME }}"
+          Add-Content ${{ env.PROD_ENV }} "DOCKER_HUB_IMAGE = ${{ env.IMAGE_NAME }}"
+
+      # Start new version of application 
+      # run docker in background
+      - name: Run container ${{env.IMAGE_NAME}} for file ${{ env.PROD_ENV }}
+        run: |  
+          docker-compose -f docker-compose.yml --env-file ${{ env.PROD_ENV }} up -d 
+
+      # add label to PR 
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['${{env.LABEL_PROD}}']
+            })
+
+  # change label for prs
+  change-label:
+    needs: [deploy-prod]
+    runs-on: ubuntu-latest
+    steps: 
+      # get last pr with label 
+      - name: Get pr with last label 
+        run: |
+          echo "get label"
+      # change name label 
+      - name: Rename label 
+        run: |
+          echo "get label"
+
+      # set new label to PR
+      - name: Put to current pr new label  
+        run: |
+          echo "get label"
+  create-releae: 
+    name: create release 
+    needs: [change-label]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ env.TAG }}
+          release_name: Релиз ${{ env.TAG }}
+          body: |
+            #### О приложении 
+            > ${{ github.event.repository.description }}
+
+            #### Список задач
+            Фичи: 
+              - тут название фичи и ссылка на тикет 
+            Баги: 
+              - пусто
+
+            #### О сборке 
+             - Номер PR `${{ github.event.number }}`
+             - Dockerhub <здесь ссылка на докерхаб>
+
+            #### Как запустить 
+            ```
+              git clone <special tag>
+              docker-compose -f docker-compose.yml --env-file <special file> up -d 
+            ```
+            
+            Данный релиз установлен на Промышленный стенд и функционируется стабильно.
+          draft: false
+          prerelease: false
+
+    
