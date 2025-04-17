@@ -126,7 +126,7 @@ jobs:
 
   create-releae: 
     name: create release 
-    needs: [change-label]
+    # needs: [change-label]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
