@@ -2,7 +2,6 @@ import sys
 import os
 from datetime import datetime
 
-# Имена файлов
 VERSION_FILE = 'version'
 VERSION_LOG_FILE = 'version_log'
 LOGS_FILE = 'logs'
