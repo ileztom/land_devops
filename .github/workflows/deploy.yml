@@ -67,20 +67,61 @@ jobs:
         run: |  
           docker-compose -f docker-compose.yml --env-file ${{ env.PROD_ENV }} up -d 
 
+  # change-label:
+  #   needs: [deploy-prod]
+  #   runs-on: ubuntu-latest
+  #   steps: 
+  #     - name: Get pr with last label 
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           github.rest.issues.addLabels({
+  #             issue_number: context.issue.number,
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             labels: ['${{ env.LABEL_PROD }}']
+  #           })
+
   change-label:
     needs: [deploy-prod]
     runs-on: ubuntu-latest
-    steps: 
-      - name: Get pr with last label 
+    permissions:
+      issues: write  # Добавляем права на запись
+      pull-requests: write
+    steps:
+      - name: Add PROD label to last PR
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.addLabels({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: ['${{ env.LABEL_PROD }}']
-            })
+            try {
+              // 1. Ищем последний закрытый PR
+              const { data: prs } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'closed',
+                sort: 'updated',
+                direction: 'desc',
+                per_page: 1
+              });
+  
+              if (prs.length === 0) {
+                console.log('No closed PRs found. Skipping labeling.');
+                return;
+              }
+  
+              // 2. Добавляем метку
+              await github.rest.issues.addLabels({
+                issue_number: prs[0].number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: ['PROD']  // Фиксированное значение вместо env.LABEL_PROD
+              });
+  
+              console.log(`Added PROD label to PR #${prs[0].number}`);
+            } catch (error) {
+              console.error('Labeling failed:', error.message);
+              core.setFailed(error.message);  // Помечаем шаг как failed
+            }
 
   create-releae: 
     name: create release 
