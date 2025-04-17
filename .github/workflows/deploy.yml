@@ -10,6 +10,10 @@ on:
         type: string
         required: true
         description: "Name of container."
+      current_branch:
+        type: string
+        required: false
+        default: ''
     secrets:
       DOCKER_USERNAME:
         required: true
@@ -116,5 +120,3 @@ jobs:
             Данный релиз установлен на Промышленный стенд и функционируется стабильно.
           draft: false
           prerelease: false
-
-    
