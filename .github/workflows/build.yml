@@ -13,11 +13,9 @@ jobs:
         run: |
           echo "start build application"
       
-      # checkout on branch 
       - name: Сheckout on [release]
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      # append comment to PR
       - name: Comment about build application 
         uses: actions/github-script@v6
         with:
