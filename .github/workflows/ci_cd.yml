@@ -1,11 +1,11 @@
 name: Automate Version and Push to Docker
 
-on:
+on:   
+  workflow_dispatch:
   pull_request:
     types: [closed]
     branches:
       - master
-  workflow_dispatch:
         
 env:
   RELEASE_BRACH: master
