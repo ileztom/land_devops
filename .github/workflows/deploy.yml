@@ -43,9 +43,10 @@ jobs:
     name: PROD
     permissions:
       contents: read
-      pull-requests: write
-      repository-projects: write
+      pull-requests: none
+      repository-projects: none
       id-token: write
+      packages: write
     steps:
       - name: checkout on release branch
         uses: actions/checkout@v4
