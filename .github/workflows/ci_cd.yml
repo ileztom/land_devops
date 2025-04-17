@@ -2,10 +2,15 @@ name: Automate Version and Push to Docker
 
 on:   
   workflow_dispatch:
-  pull_request:
-    types: [closed]
-    branches:
-      - master
+    inputs:
+      pr_number:
+        description: 'Номер PR для добавления метки'
+        required: true
+        type: number
+  # pull_request:
+  #   types: [closed]
+  #   branches:
+  #     - master
         
 env:
   NAME_VERSION_FILE: ${{ github.workspace }}/version/version
