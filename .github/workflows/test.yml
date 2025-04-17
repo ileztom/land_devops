@@ -49,22 +49,22 @@ jobs:
         run: | 
           echo "simple run test"
 
-  change-label:
-    needs: [regress, integr, fazz, smoke, unit]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      repository-projects: write
-      id-token: write
-    steps: 
-    -   name: Get pr with last label
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.addLabels({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: ['${{ env.LABEL_TEST }}']
-            })
+  # change-label:
+  #   needs: [regress, integr, fazz, smoke, unit]
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: write
+  #     pull-requests: write
+  #     repository-projects: write
+  #     id-token: write
+  #   steps: 
+  #   -   name: Get pr with last label
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           github.rest.issues.addLabels({
+  #             issue_number: context.issue.number,
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             labels: ['${{ env.LABEL_TEST }}']
+  #           })
