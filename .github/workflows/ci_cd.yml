@@ -158,20 +158,35 @@ jobs:
       dockerhub_login: ${{ secrets.DOCKER_HUB_LOGIN }}
       telegram_token: ${{ secrets.TELEGRAM_TOKEN }}
       telegram_to: ${{ secrets.TELEGRAM_RECEIVER_ID }}
-      
+
   deploy:
     name: (DPL) Deploy
     needs: [telegram_notification, pre-merge-check, update-version]
     uses: ./.github/workflows/deploy.yml
     with: 
-      version: v${{needs.update-version.outputs.tag}}
+      version: v${{ needs.update-version.outputs.tag }}
       container_name: land_devops
-      current_branch: ${{needs.pre-merge-check.outputs.current_branch}}
+      current_branch: ${{ needs.pre-merge-check.outputs.current_branch }}
     secrets: 
       DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_LOGIN }}
     permissions:
-      contents: write
-      pull-requests: write
-      repository-projects: write
+      contents: read
+      packages: write
       id-token: write
+      
+  # deploy:
+  #   name: (DPL) Deploy
+  #   needs: [telegram_notification, pre-merge-check, update-version]
+  #   uses: ./.github/workflows/deploy.yml
+  #   with: 
+  #     version: v${{needs.update-version.outputs.tag}}
+  #     container_name: land_devops
+  #     current_branch: ${{needs.pre-merge-check.outputs.current_branch}}
+  #   secrets: 
+  #     DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_LOGIN }}
+  #   permissions:
+  #     contents: write
+  #     pull-requests: write
+  #     repository-projects: write
+  #     id-token: write
       
