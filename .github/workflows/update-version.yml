@@ -94,10 +94,29 @@ jobs:
       
       - name: Update version and tag
         run: |
-          git add .
-          git commit -m "Update version to ${TAG_MSG}"
-          git tag -a "v${TAG_MSG}" -m "Version ${TAG_MSG}"
-          git push origin --tags
+          # 1. Сначала обновляем файл версии (если нужно)
+          echo "0.18.0" > version/version/version
+          
+          # 2. Добавляем конкретные файлы
+          git add version/version/version
+          git add changelog.md  # если нужно
+          
+          # 3. Проверяем статус
+          git status
+          
+          # 4. Создаем коммит только если есть изменения
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "GitHub Actions Bot"
+            git config user.email "actions@github.com"
+            git commit -m "Update version to ${TAG_MSG} [skip ci]"
+            git tag -a "v${TAG_MSG}" -m "Version ${TAG_MSG}"
+            git push origin "v${TAG_MSG}"
+          else
+            echo "No changes to commit"
+            # Создаем только тег, если коммит не нужен
+            git tag -a "v${TAG_MSG}" -m "Version ${TAG_MSG}"
+            git push origin "v${TAG_MSG}"
+          fi
 
   udpate_changelog:
     name: (VER) Changelog update
