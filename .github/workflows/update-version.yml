@@ -77,7 +77,7 @@ jobs:
           git add .
           git commit -m "${{ env.COMMIT_MSG }}"
           git tag -a v${{ env.TAG_MSG }} -m "update tag"
-          git push -u origin ${{ inputs.release_branch }} --tags 
+          git push -u origin master --tags
 
   udpate_changelog:
     name: (VER) Changelog update
@@ -110,7 +110,7 @@ jobs:
         run: |
           git add .
           git commit -m "[${{ needs.update-version.outputs.tag }}] ${{ env.CHANGELOG_FILE }}"
-          git push -u origin ${{ inputs.release_branch }} --tags 
+          git push -u origin master 
 
       - uses: actions/upload-artifact@v4
         with:
