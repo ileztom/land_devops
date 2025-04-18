@@ -48,6 +48,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      issues: write
       repository-projects: write
       id-token: write
     with:
