@@ -69,7 +69,7 @@ jobs:
 
       - name: Get version info
         run: |
-          VERSION_PATH="/land_devops/version/version"
+          VERSION_PATH = os.path.join(os.getcwd(), "land_devops/version/version")
           
           # Получаем текущую версию
           TAG_MSG=$(python .github/workflows/version_up.py $VERSION_PATH get_current_version)
