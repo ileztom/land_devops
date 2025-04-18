@@ -9,13 +9,19 @@ LOGS_FILE_NAME = 'logs'
 
 class VersionManager:
     def __init__(self, base_path):
-        self.base_path = base_path
-        self.version_file = os.path.join(base_path, VERSION_FILE_NAME)
-        self.version_log_file = os.path.join(base_path, VERSION_LOG_FILE_NAME)
-        self.logs_file = os.path.join(base_path, LOGS_FILE_NAME)
+    # Проверяем, что путь существует и доступен для чтения
+    if not os.path.exists(base_path):
+        raise FileNotFoundError(f"Path {base_path} does not exist")
+    
+    if not os.access(base_path, os.R_OK | os.W_OK):
+        raise PermissionError(f"No write permissions for {base_path}")
+    
+    self.base_path = base_path
+    self.version_file = os.path.join(base_path, 'version')
+    self.version_log_file = os.path.join(base_path, 'version_log')
         
         # Создаем директорию, если ее нет
-        os.makedirs(base_path, exist_ok=True)
+        # os.makedirs(base_path, exist_ok=True)
 
     def get_current_timestamp(self):
         now = datetime.now()
