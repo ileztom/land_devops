@@ -50,21 +50,23 @@ class VersionManager:
             f.write(version)
 
     def get_last_log_message(self):
-        try:
-            if not os.path.exists(self.version_log_file):
-                return "No version log available"
+    try:
+        if not os.path.exists(self.version_log_file):
+            return "No version log available"
+        
+        with open(self.version_log_file, 'r') as f:
+            first_line = f.readline().strip()
+            if not first_line:
+                return "Empty version log"
             
-            with open(self.version_log_file, 'r') as f:
-                first_line = f.readline().strip()
-                if not first_line:
-                    return "Empty version log"
-                
-                # Извлекаем сообщение после последнего ']'
-                parts = first_line.split(']')
-                return parts[-1].strip() if len(parts) > 1 else first_line
-        except Exception as e:
-            print(f"Error reading version log: {str(e)}", file=sys.stderr)
-            return "Error reading version log"
+            # Пример формата: [1.2.3] <- [1.2.2] [date] message
+            parts = first_line.split(']')
+            if len(parts) >= 4:  # Проверяем корректность формата
+                return parts[-1].strip()
+            return first_line
+    except Exception as e:
+        print(f"Error reading log: {str(e)}", file=sys.stderr)
+        return "Error reading version log"
 
     def prepend_to_file(self, filename, content):
         existing = ''
