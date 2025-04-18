@@ -57,16 +57,30 @@ jobs:
         run:
           python ${{ env.VERSION_SCRIPT }} ${{ env.VERSION_CATALOG }} upgrade_version ${{ env.PATCH }} "${{ github.event.pull_request.title }}"
       
-      - name: Save Version and Log to env
-        id: get-commit-txt
-        run: | 
-          COMMIT_MSG=$(python ${{ env.VERSION_SCRIPT }} ${{ env.VERSION_CATALOG }} get_last_log_msg)
-          TAG_MSG=$(python ${{ env.VERSION_SCRIPT }} ${{ env.VERSION_CATALOG }} get_current_version)
-          echo "COMMIT_MSG=${COMMIT_MSG}" >> $GITHUB_ENV
+      # - name: Save Version and Log to env
+      #   id: get-commit-txt
+      #   run: | 
+      #     COMMIT_MSG=$(python ${{ env.VERSION_SCRIPT }} ${{ env.VERSION_CATALOG }} get_last_log_msg)
+      #     TAG_MSG=$(python ${{ env.VERSION_SCRIPT }} ${{ env.VERSION_CATALOG }} get_current_version)
+      #     echo "COMMIT_MSG=${COMMIT_MSG}" >> $GITHUB_ENV
+      #     echo "TAG_MSG=${TAG_MSG}" >> $GITHUB_ENV
+      #     echo "TAG_MSG=${TAG_MSG}" >> $GITHUB_OUTPUT
+      #     echo "COMMIT_MSG=${COMMIT_MSG}" >> $GITHUB_OUTPUT
+
+      - name: Get version info
+        run: |
+          # Получаем текущую версию
+          TAG_MSG=$(python .github/workflows/version_up.py /home/runner/work/land_devops/land_devops/version get_current_version)
+
+          # Получаем последнее сообщение лога
+          COMMIT_MSG=$(python .github/workflows/version_up.py /home/runner/work/land_devops/land_devops/version get_last_log_msg)
+          
+          # Экспортируем переменные
           echo "TAG_MSG=${TAG_MSG}" >> $GITHUB_ENV
+          echo "COMMIT_MSG=${COMMIT_MSG}" >> $GITHUB_ENV
           echo "TAG_MSG=${TAG_MSG}" >> $GITHUB_OUTPUT
           echo "COMMIT_MSG=${COMMIT_MSG}" >> $GITHUB_OUTPUT
-      
+          
       - name: Setup git config
         run: |
           git config user.name "GitHub Actions Bot"
