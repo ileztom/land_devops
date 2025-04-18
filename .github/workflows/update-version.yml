@@ -92,31 +92,34 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
       
-      - name: Update version and tag
+      - name: Update version and push tag
         run: |
-          # 1. Сначала обновляем файл версии (если нужно)
-          echo "0.18.0" > version/version/version
+          # 1. Проверяем существование тега
+          if git ls-remote --tags origin "v${TAG_MSG}" | grep -q "refs/tags/v${TAG_MSG}"; then
+            echo "Tag v${TAG_MSG} already exists, skipping creation"
+            exit 0
+          fi
+      
+          # 2. Обновляем файл версии
+          echo "${TAG_MSG}" > version/version/version
           
-          # 2. Добавляем конкретные файлы
+          # 3. Добавляем изменения
           git add version/version/version
-          git add changelog.md  # если нужно
-          
-          # 3. Проверяем статус
-          git status
+          git add changelog.md 2>/dev/null || true  # Игнорируем ошибку если файла нет
           
           # 4. Создаем коммит только если есть изменения
           if [ -n "$(git status --porcelain)" ]; then
             git config user.name "GitHub Actions Bot"
             git config user.email "actions@github.com"
             git commit -m "Update version to ${TAG_MSG} [skip ci]"
-            git tag -a "v${TAG_MSG}" -m "Version ${TAG_MSG}"
-            git push origin "v${TAG_MSG}"
-          else
-            echo "No changes to commit"
-            # Создаем только тег, если коммит не нужен
-            git tag -a "v${TAG_MSG}" -m "Version ${TAG_MSG}"
-            git push origin "v${TAG_MSG}"
+            git push origin ${{ inputs.release_branch }}
           fi
+          
+          # 5. Создаем и пушим тег
+          git tag -a "v${TAG_MSG}" -m "Version ${TAG_MSG}"
+          git push origin "v${TAG_MSG}"
+        env:
+          TAG_MSG: ${{ needs.update-version.outputs.tag }}
 
   udpate_changelog:
     name: (VER) Changelog update
