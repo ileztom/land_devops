@@ -2,26 +2,15 @@ import sys
 import os
 from datetime import datetime
 
-# Базовые имена файлов (без пути)
-VERSION_FILE_NAME = 'version'
-VERSION_LOG_FILE_NAME = 'version_log'
-LOGS_FILE_NAME = 'logs'
-
 class VersionManager:
     def __init__(self, base_path):
-    # Проверяем, что путь существует и доступен для чтения
-    if not os.path.exists(base_path):
-        raise FileNotFoundError(f"Path {base_path} does not exist")
-    
-    if not os.access(base_path, os.R_OK | os.W_OK):
-        raise PermissionError(f"No write permissions for {base_path}")
-    
-    self.base_path = base_path
-    self.version_file = os.path.join(base_path, 'version')
-    self.version_log_file = os.path.join(base_path, 'version_log')
+        if not os.path.exists(base_path):
+            raise FileNotFoundError(f"Path {base_path} does not exist")
         
-        # Создаем директорию, если ее нет
-        # os.makedirs(base_path, exist_ok=True)
+        self.base_path = base_path
+        self.version_file = os.path.join(base_path, 'version')
+        self.version_log_file = os.path.join(base_path, 'version_log')
+        self.logs_file = os.path.join(base_path, 'logs')
 
     def get_current_timestamp(self):
         now = datetime.now()
@@ -33,64 +22,47 @@ class VersionManager:
                 version = f.read().strip()
                 if not version:
                     raise ValueError("Version file is empty")
-                
-                parts = version.split('.')
-                if len(parts) != 3 or not all(p.isdigit() for p in parts):
-                    raise ValueError("Invalid version format")
-                
                 return version
-        except (FileNotFoundError, ValueError):
-            # Если файла нет или он некорректен, создаем версию по умолчанию
-            default_version = '0.0.1'
-            self.write_version(default_version)
-            return default_version
-
-    def write_version(self, version):
-        with open(self.version_file, 'w') as f:
-            f.write(version)
+        except Exception as e:
+            print(f"Error reading version: {str(e)}", file=sys.stderr)
+            return "0.0.1"
 
     def get_last_log_message(self):
-    try:
-        if not os.path.exists(self.version_log_file):
-            return "No version log available"
-        
-        with open(self.version_log_file, 'r') as f:
-            first_line = f.readline().strip()
-            if not first_line:
-                return "Empty version log"
+        try:
+            if not os.path.exists(self.version_log_file):
+                return "No version log available"
             
-            # Пример формата: [1.2.3] <- [1.2.2] [date] message
-            parts = first_line.split(']')
-            if len(parts) >= 4:  # Проверяем корректность формата
-                return parts[-1].strip()
-            return first_line
-    except Exception as e:
-        print(f"Error reading log: {str(e)}", file=sys.stderr)
-        return "Error reading version log"
-
-    def prepend_to_file(self, filename, content):
-        existing = ''
-        if os.path.exists(filename):
-            with open(filename, 'r') as f:
-                existing = f.read().strip('\n')
-        with open(filename, 'w') as f:
-            f.write(content)
-            if existing:
-                f.write('\n' + existing)
+            with open(self.version_log_file, 'r') as f:
+                first_line = f.readline().strip()
+                if not first_line:
+                    return "Empty version log"
+                
+                parts = first_line.split(']')
+                return parts[-1].strip() if len(parts) > 1 else first_line
+        except Exception as e:
+            print(f"Error reading log: {str(e)}", file=sys.stderr)
+            return "Error reading version log"
 
 def main():
     if len(sys.argv) < 3:
-        print("Usage: python version_up.py <version_dir_path> <command>")
+        print("Usage: python version_up.py <path> <command>")
         sys.exit(1)
-        
-    version_dir = sys.argv[1]
+
+    path = sys.argv[1]
     command = sys.argv[2]
     
-    version_file = os.path.join(version_dir, 'version')
-    version_log_file = os.path.join(version_dir, 'version_log')
-    
-    if not os.path.exists(version_file):
-        print(f"Error: Version file not found at {version_file}")
+    try:
+        manager = VersionManager(path)
+        
+        if command == "get_current_version":
+            print(manager.read_current_version())
+        elif command == "get_last_log_msg":
+            print(manager.get_last_log_message())
+        else:
+            print(f"Unknown command: {command}", file=sys.stderr)
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == '__main__':
