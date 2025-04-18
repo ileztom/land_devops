@@ -123,55 +123,62 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      repository-projects: write
-      id-token: write
+      issues: write  # Добавьте это право
     runs-on: ubuntu-latest
     needs: update-version
     steps:  
-      - name: Сheckout on [${{ inputs.release_branch }}]
+      - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_branch }}
 
-      - name: Pull commits
-        run: 
-          git pull
-      
+      - name: Find associated PR
+        id: find-pr
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // Ищем PR, связанный с этим workflow run
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`
+            });
+            return prs[0]?.number || 0;
+
       - name: Update changelog.md
         run: | 
           echo $'\n'"---" | cat - ${{ env.CHANGELOG_FILE }} > temp && mv temp ${{ env.CHANGELOG_FILE }}
-          echo "#### [${{ needs.update-version.outputs.tag }}] - [$(date +"%d.%m.%Y %H:%M:%S")]    ${{ github.event.pull_request.head.ref }}" $'\n'${{ needs.update-version.outputs.commit_msg }} | cat - ${{ env.CHANGELOG_FILE }} > temp && mv temp ${{ env.CHANGELOG_FILE }}
-      
-      - name: Setup git config
+          echo "#### [${{ needs.update-version.outputs.tag }}] - [$(date +"%d.%m.%Y %H:%M:%S")]    ${{ github.event.pull_request.head.ref || 'main' }}" $'\n'${{ needs.update-version.outputs.commit_msg }} | cat - ${{ env.CHANGELOG_FILE }} > temp && mv temp ${{ env.CHANGELOG_FILE }}
+
+      - name: Commit changes
         run: |
           git config user.name "GitHub Actions Bot"
-          git config user.email "<>"
-      
-      - name: Commit and push
-        run: |
-          git add .
-          git commit -m "[${{ needs.update-version.outputs.tag }}] ${{ env.CHANGELOG_FILE }}"
-          git push -u origin ${{ inputs.release_branch }} --tags 
+          git config user.email "actions@github.com"
+          git add ${{ env.CHANGELOG_FILE }}
+          git commit -m "Update ${{ env.CHANGELOG_FILE }} for v${{ needs.update-version.outputs.tag }}"
+          git push origin ${{ inputs.release_branch }}
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.CHANGELOG_FILE }}
-          path: ${{ env.CHANGELOG_FILE }}
-
-      - uses: actions/github-script@v6
+      - name: Add comment to PR
+        if: steps.find-pr.outputs.result != 0
+        uses: actions/github-script@v6
         with:
           script: |
             github.rest.issues.createComment({
-              issue_number: context.issue.number,
+              issue_number: ${{ steps.find-pr.outputs.result }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Файл ${{ env.CHANGELOG_FILE }} был обновлен. Новая версия доступна в корне репозитория.'
+              body: 'Файл ${{ env.CHANGELOG_FILE }} обновлен до версии ${{ needs.update-version.outputs.tag }}.\n\nИзменения: ${{ needs.update-version.outputs.commit_msg }}'
             })
 
-      - uses: actions/github-script@v7
+      - name: Add label to PR
+        if: steps.find-pr.outputs.result != 0
+        uses: actions/github-script@v6
         with:
           script: |
             github.rest.issues.addLabels({
-              issue_number: context.issue.number,
+              issue_number: ${{ steps.find-pr.outputs.result }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              labels: ['changelog-${{ needs.update-version.outputs.tag }}']
+              labels: ['changelog-updated']
             })
