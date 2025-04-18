@@ -44,7 +44,7 @@ jobs:
   tests:
     name: (TST) Test
     needs: security
-    uses: ileztom/land_devops/.github/workflows/test.yml@release
+    uses: ileztom/land_devops/.github/workflows/test.yml@master
     permissions:
       contents: write
       pull-requests: write
