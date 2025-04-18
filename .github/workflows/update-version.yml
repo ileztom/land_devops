@@ -69,31 +69,37 @@ jobs:
 
       - name: Get version info
         run: |
-          VERSION_PATH = os.path.join(os.getcwd(), "land_devops/version/version")
+          # Указываем правильный путь к файлам версий
+          VERSION_PATH="${{ github.workspace }}/land_devops/version/version"
+          
+          # Проверяем существование файлов
+          if [ ! -f "$VERSION_PATH/version" ]; then
+            echo "Error: Version file not found at $VERSION_PATH/version"
+            exit 1
+          fi
           
           # Получаем текущую версию
-          TAG_MSG=$(python .github/workflows/version_up.py $VERSION_PATH get_current_version)
-
+          TAG_MSG=$(python .github/workflows/version_up.py "$VERSION_PATH" get_current_version)
+          
           # Получаем последнее сообщение лога
-          COMMIT_MSG=$(python .github/workflows/version_up.py $VERSION_PATH get_last_log_msg)
+          COMMIT_MSG=$(python .github/workflows/version_up.py "$VERSION_PATH" get_last_log_msg)
           
           # Экспортируем переменные
           echo "TAG_MSG=${TAG_MSG}" >> $GITHUB_ENV
           echo "COMMIT_MSG=${COMMIT_MSG}" >> $GITHUB_ENV
-          # echo "TAG_MSG=${TAG_MSG}" >> $GITHUB_OUTPUT
-          # echo "COMMIT_MSG=${COMMIT_MSG}" >> $GITHUB_OUTPUT
-          
-      - name: Setup git config
-        run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "<>"
-
-      - name: Update [version] and put [tag]. Commit and push
-        run: |
-          git add .
-          git commit -m "${{ env.COMMIT_MSG }}"
-          git tag -a v${{ env.TAG_MSG }} -m "update tag"
-          git push -u origin ${{ inputs.release_branch }} --tags 
+                
+            - name: Setup git config
+              run: |
+                git config user.name "GitHub Actions Bot"
+                git config user.email "<>"
+      
+            - name: Update [version] and put [tag]. Commit and push
+              run: |
+                git add .
+                git commit -m "${{ env.COMMIT_MSG }}"
+                git tag -a v${{ env.TAG_MSG }} -m "update tag"
+                git push -u origin ${{ inputs.release_branch }} --tags
+              shell: /usr/bin/bash -e {0}
 
   udpate_changelog:
     name: (VER) Changelog update
