@@ -80,13 +80,23 @@ def log_version_into_file(new_version, old_version, message, version_catalog):
 
 def get_last_log_msg_from_file(version_catalog):
     version_file = f"{version_catalog}/version_log.txt"
+    if not os.path.exists(version_catalog):
+        os.makedirs(version_catalog, exist_ok=True)
     if not os.path.exists(version_file):
-        open(f"{version_catalog}/version_log.txt", "x").close()
-    with open(f"{version_catalog}/version_log.txt", "r") as f:
-        line = f.readlines()[-1]
-        if len(line) == 0:
-            return '-'
-        return line.split('|')[1].strip()
+        with open(version_file, "w") as f:
+            f.write("Initial version\n")
+        return "Initial version"
+    
+    with open(version_file, "r") as f:
+        lines = f.readlines()
+        if not lines:
+            return "No messages yet"
+        last_line = lines[-1].strip()
+        if not last_line:
+            return "No messages yet"
+        if '|' in last_line:
+            return last_line.split('|')[1].strip()
+        return last_line
     
 
 def is_file_exists(filename):
