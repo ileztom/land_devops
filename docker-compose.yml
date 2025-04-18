@@ -1,11 +1,12 @@
-services:
-  web:
-    image: "landing_devops:1.1.0"
-    container_name: "web-container"
-    
+services: 
+  web: 
+    image: "landing_devops:1.1.0" 
+    container_name: "web-container" 
+ 
     volumes: 
-      - "./volume:/tmp/"
-    build:
-      - "./"
-    ports:
-      - 8082:80
+      - "../volume:/tmp/" 
+    build: 
+        "./" 
+    ports: 
+      - "8880:80"
+      
