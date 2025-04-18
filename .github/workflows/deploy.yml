@@ -1,23 +1,23 @@
-name: Deploy appllication
+name: Deploy application
 on:
   workflow_call:
     inputs:  
       version:
         type: string
         required: true
-        description: "Version of application. Tag from gitlab"
+        description: "Version of application. Tag from github"
       container_name:
         type: string
         required: true
-        description: "Name of container."
+        description: "Name of container"
       current_branch:
         type: string
-        required: false
-        default: ''
+        required: true
+        description: "Name of current branch"
     secrets:
       DOCKER_USERNAME:
         required: true
-        description: ''
+        description: "Docker hub username"
   
 env:
   TAG: ${{ inputs.version || 'latest' }}
@@ -35,18 +35,17 @@ jobs:
         environment: [dev,test,stage]
     steps:
       - name: Deploy to stands
-        run: echo "start on ${{matrix.environment}}"
+        run: echo "start on ${{ matrix.environment }}"
 
   deploy-prod: 
     environment: prod
     runs-on: self-hosted
     name: PROD
     permissions:
-      contents: read
-      pull-requests: none
-      repository-projects: none
+      contents: write
+      pull-requests: write
+      repository-projects: write
       id-token: write
-      packages: write
     steps:
       - name: checkout on release branch
         uses: actions/checkout@v4
@@ -64,73 +63,34 @@ jobs:
           Add-Content ${{ env.PROD_ENV }} "CONTAINER_NAME=${{ env.CONTAINER_NAME }}"
           Add-Content ${{ env.PROD_ENV }} "DOCKER_HUB_IMAGE = ${{ env.IMAGE_NAME }}"
 
-      - name: Run container ${{env.IMAGE_NAME}} for file ${{ env.PROD_ENV }}
+      - name: Run container ${{ env.IMAGE_NAME }} for file ${{ env.PROD_ENV }}
         run: |  
-          docker-compose -f docker-compose.yml --env-file ${{ env.PROD_ENV }} up -d 
+          docker-compose -f docker-compose.yaml --env-file ${{ env.PROD_ENV }} up -d 
 
-  # change-label:
-  #   needs: [deploy-prod]
-  #   runs-on: ubuntu-latest
-  #   steps: 
-  #     - name: Get pr with last label 
-  #       uses: actions/github-script@v7
-  #       with:
-  #         script: |
-  #           github.rest.issues.addLabels({
-  #             issue_number: context.issue.number,
-  #             owner: context.repo.owner,
-  #             repo: context.repo.repo,
-  #             labels: ['${{ env.LABEL_PROD }}']
-  #           })
+      
 
-  # change-label:
-  #   needs: [deploy-prod]
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     issues: write  # Добавляем права на запись
-  #     pull-requests: none
-  #   steps:
-  #     - name: Add PROD label to last PR
-  #       uses: actions/github-script@v7
-  #       with:
-  #         script: |
-  #           try {
-  #             // 1. Ищем последний закрытый PR
-  #             const { data: prs } = await github.rest.pulls.list({
-  #               owner: context.repo.owner,
-  #               repo: context.repo.repo,
-  #               state: 'closed',
-  #               sort: 'updated',
-  #               direction: 'desc',
-  #               per_page: 1
-  #             });
-  
-  #             if (prs.length === 0) {
-  #               console.log('No closed PRs found. Skipping labeling.');
-  #               return;
-  #             }
-  
-  #             // 2. Добавляем метку
-  #             await github.rest.issues.addLabels({
-  #               issue_number: prs[0].number,
-  #               owner: context.repo.owner,
-  #               repo: context.repo.repo,
-  #               labels: ['PROD']  // Фиксированное значение вместо env.LABEL_PROD
-  #             });
-  
-  #             console.log(`Added PROD label to PR #${prs[0].number}`);
-  #           } catch (error) {
-  #             console.error('Labeling failed:', error.message);
-  #             core.setFailed(error.message);  // Помечаем шаг как failed
-  #           }
+  change-label:
+    needs: [deploy-prod]
+    runs-on: ubuntu-latest
+    steps: 
+    -   name: Add label to PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['${{ env.LABEL_PROD }}']
+            })
 
   create-releae: 
     name: create release 
-    # needs: [change-label]
+    needs: [change-label]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -145,20 +105,194 @@ jobs:
 
             #### Список задач
             Фичи: 
-              - тут название фичи и ссылка на тикет 
+              - ${{inputs.current_branch}}
             Баги: 
               - пусто
 
             #### О сборке 
              - Номер PR `${{ github.event.number }}`
-             - Dockerhub <здесь ссылка на докерхаб>
+             - Dockerhub https://hub.docker.com/repositories/${{ secrets.DOCKER_USERNAME }}
 
             #### Как запустить 
             ```
               git clone <special tag>
-              docker-compose -f docker-compose.yml --env-file <special file> up -d 
+              docker-compose -f docker-compose.yaml --env-file <special file> up -d 
             ```
             
-            Данный релиз установлен на Промышленный стенд и функционируется стабильно.
+            Данный релиз установлен на Промышленный стенд и функционирует стабильно.
           draft: false
           prerelease: false
+
+
+
+
+
+
+
+
+
+
+# name: Deploy appllication
+# on:
+#   workflow_call:
+#     inputs:  
+#       version:
+#         type: string
+#         required: true
+#         description: "Version of application. Tag from gitlab"
+#       container_name:
+#         type: string
+#         required: true
+#         description: "Name of container."
+#       current_branch:
+#         type: string
+#         required: false
+#         default: ''
+#     secrets:
+#       DOCKER_USERNAME:
+#         required: true
+#         description: ''
+  
+# env:
+#   TAG: ${{ inputs.version || 'latest' }}
+#   CONTAINER_NAME: ${{ inputs.container_name || format('land_devops:v{0}', inputs.version)}}
+#   PROD_ENV: "prod.env"
+#   IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/${{ inputs.container_name}}:${{ inputs.version }} 
+#   LABEL_PROD: "PROD"
+#   LABEL_EX_PROD: "EX_PROD"
+
+# jobs: 
+#   deploy-matrix:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         environment: [dev,test,stage]
+#     steps:
+#       - name: Deploy to stands
+#         run: echo "start on ${{matrix.environment}}"
+
+#   deploy-prod: 
+#     environment: prod
+#     runs-on: self-hosted
+#     name: PROD
+#     permissions:
+#       contents: read
+#       pull-requests: none
+#       repository-projects: none
+#       id-token: write
+#       packages: write
+#     steps:
+#       - name: checkout on release branch
+#         uses: actions/checkout@v4
+  
+#       - name: List data about container 
+#         run: | 
+#           docker ps -a 
+#           docker image ls
+      
+#       - name: Create .ENV
+#         shell: powershell
+#         run : |
+#           New-Item ${{ env.PROD_ENV }} -ItemType file -Force
+#           Add-Content ${{ env.PROD_ENV }} "VERSION=${{ env.TAG }}"
+#           Add-Content ${{ env.PROD_ENV }} "CONTAINER_NAME=${{ env.CONTAINER_NAME }}"
+#           Add-Content ${{ env.PROD_ENV }} "DOCKER_HUB_IMAGE = ${{ env.IMAGE_NAME }}"
+
+#       - name: Run container ${{env.IMAGE_NAME}} for file ${{ env.PROD_ENV }}
+#         run: |  
+#           docker-compose -f docker-compose.yml --env-file ${{ env.PROD_ENV }} up -d 
+
+#   # change-label:
+#   #   needs: [deploy-prod]
+#   #   runs-on: ubuntu-latest
+#   #   steps: 
+#   #     - name: Get pr with last label 
+#   #       uses: actions/github-script@v7
+#   #       with:
+#   #         script: |
+#   #           github.rest.issues.addLabels({
+#   #             issue_number: context.issue.number,
+#   #             owner: context.repo.owner,
+#   #             repo: context.repo.repo,
+#   #             labels: ['${{ env.LABEL_PROD }}']
+#   #           })
+
+#   # change-label:
+#   #   needs: [deploy-prod]
+#   #   runs-on: ubuntu-latest
+#   #   permissions:
+#   #     issues: write  # Добавляем права на запись
+#   #     pull-requests: none
+#   #   steps:
+#   #     - name: Add PROD label to last PR
+#   #       uses: actions/github-script@v7
+#   #       with:
+#   #         script: |
+#   #           try {
+#   #             // 1. Ищем последний закрытый PR
+#   #             const { data: prs } = await github.rest.pulls.list({
+#   #               owner: context.repo.owner,
+#   #               repo: context.repo.repo,
+#   #               state: 'closed',
+#   #               sort: 'updated',
+#   #               direction: 'desc',
+#   #               per_page: 1
+#   #             });
+  
+#   #             if (prs.length === 0) {
+#   #               console.log('No closed PRs found. Skipping labeling.');
+#   #               return;
+#   #             }
+  
+#   #             // 2. Добавляем метку
+#   #             await github.rest.issues.addLabels({
+#   #               issue_number: prs[0].number,
+#   #               owner: context.repo.owner,
+#   #               repo: context.repo.repo,
+#   #               labels: ['PROD']  // Фиксированное значение вместо env.LABEL_PROD
+#   #             });
+  
+#   #             console.log(`Added PROD label to PR #${prs[0].number}`);
+#   #           } catch (error) {
+#   #             console.error('Labeling failed:', error.message);
+#   #             core.setFailed(error.message);  // Помечаем шаг как failed
+#   #           }
+
+#   create-releae: 
+#     name: create release 
+#     # needs: [change-label]
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+#       - name: Create Release
+#         id: create_release
+#         uses: actions/create-release@v1
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         with:
+#           tag_name: ${{ env.TAG }}
+#           release_name: Релиз ${{ env.TAG }}
+#           body: |
+#             #### О приложении 
+#             > ${{ github.event.repository.description }}
+
+#             #### Список задач
+#             Фичи: 
+#               - тут название фичи и ссылка на тикет 
+#             Баги: 
+#               - пусто
+
+#             #### О сборке 
+#              - Номер PR `${{ github.event.number }}`
+#              - Dockerhub <здесь ссылка на докерхаб>
+
+#             #### Как запустить 
+#             ```
+#               git clone <special tag>
+#               docker-compose -f docker-compose.yml --env-file <special file> up -d 
+#             ```
+            
+#             Данный релиз установлен на Промышленный стенд и функционируется стабильно.
+#           draft: false
+#           prerelease: false
