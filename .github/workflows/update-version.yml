@@ -69,24 +69,31 @@ jobs:
 
       - name: Get version info
         run: |
-          # Указываем правильный путь к файлам версий
-          VERSION_PATH="${{ github.workspace }}/land_devops/version/version"
+          # Правильный путь к файлам версий (из вашего репозитория)
+          VERSION_PATH="${{ github.workspace }}/version/version"
           
           # Проверяем существование файлов
+          echo "Checking files in: $VERSION_PATH"
+          ls -la "$VERSION_PATH"
+          
           if [ ! -f "$VERSION_PATH/version" ]; then
             echo "Error: Version file not found at $VERSION_PATH/version"
             exit 1
           fi
           
-          # Получаем текущую версию
+          # Получаем данные
           TAG_MSG=$(python .github/workflows/version_up.py "$VERSION_PATH" get_current_version)
-          
-          # Получаем последнее сообщение лога
           COMMIT_MSG=$(python .github/workflows/version_up.py "$VERSION_PATH" get_last_log_msg)
           
           # Экспортируем переменные
           echo "TAG_MSG=${TAG_MSG}" >> $GITHUB_ENV
           echo "COMMIT_MSG=${COMMIT_MSG}" >> $GITHUB_ENV
+          echo "TAG_MSG=${TAG_MSG}" >> $GITHUB_OUTPUT
+          echo "COMMIT_MSG=${COMMIT_MSG}" >> $GITHUB_OUTPUT
+          
+          # Для отладки
+          echo "Version: ${TAG_MSG}"
+          echo "Commit message: ${COMMIT_MSG}"
                 
             - name: Setup git config
               run: |
