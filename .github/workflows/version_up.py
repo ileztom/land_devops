@@ -78,21 +78,17 @@ class VersionManager:
 
 def main():
     if len(sys.argv) < 3:
-        print("Usage: python version_up.py <base_path> <command>")
-        print("Available commands: get_version, get_last_log")
+        print("Usage: python version_up.py <version_dir_path> <command>")
         sys.exit(1)
-
-    base_path = sys.argv[1]
+        
+    version_dir = sys.argv[1]
     command = sys.argv[2]
     
-    manager = VersionManager(base_path)
-
-    if command == "get_last_log_msg":
-        print(manager.get_last_log_message())
-    elif command == "get_current_version":
-        print(manager.read_current_version())
-    else:
-        print(f"Unknown command: {command}", file=sys.stderr)
+    version_file = os.path.join(version_dir, 'version')
+    version_log_file = os.path.join(version_dir, 'version_log')
+    
+    if not os.path.exists(version_file):
+        print(f"Error: Version file not found at {version_file}")
         sys.exit(1)
 
 if __name__ == '__main__':
