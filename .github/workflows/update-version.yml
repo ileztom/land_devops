@@ -142,12 +142,36 @@ jobs:
         git config user.email "actions@github.com"
         git pull origin ${{ inputs.release_branch }} --rebase
   
+    # - name: Update changelog.md
+    #   run: | 
+    #     echo "Updating changelog..."
+    #     echo -e "\n---\n" >> ${{ env.CHANGELOG_FILE }}
+    #     echo "#### [${{ needs.update-version.outputs.tag }}] - $(date +'%d.%m.%Y %H:%M:%S')" >> ${{ env.CHANGELOG_FILE }}
+    #     echo "${{ needs.update-version.outputs.commit_msg }}" >> ${{ env.CHANGELOG_FILE }}
     - name: Update changelog.md
-      run: | 
-        echo "Updating changelog..."
-        echo -e "\n---\n" >> ${{ env.CHANGELOG_FILE }}
-        echo "#### [${{ needs.update-version.outputs.tag }}] - $(date +'%d.%m.%Y %H:%M:%S')" >> ${{ env.CHANGELOG_FILE }}
-        echo "${{ needs.update-version.outputs.commit_msg }}" >> ${{ env.CHANGELOG_FILE }}
+      run: |
+        # Создаем временный файл с новыми изменениями
+        echo "## [v${{ needs.update-version.outputs.tag }}] - $(date +'%d.%m.%Y %H:%M:%S')" > new_changes.md
+        echo "" >> new_changes.md
+        echo "${{ needs.update-version.outputs.commit_msg }}" >> new_changes.md
+        echo "" >> new_changes.md
+        echo "---" >> new_changes.md
+        echo "" >> new_changes.md
+        
+        # Объединяем с существующим changelog.md
+        if [ -f "${{ env.CHANGELOG_FILE }}" ]; then
+          cat new_changes.md ${{ env.CHANGELOG_FILE }} > temp_changelog.md
+          mv temp_changelog.md ${{ env.CHANGELOG_FILE }}
+        else
+          mv new_changes.md ${{ env.CHANGELOG_FILE }}
+        fi
+        
+        # Удаляем временные файлы
+        rm -f new_changes.md temp_changelog.md
+        
+        # Выводим результат для проверки
+        echo "Updated changelog content:"
+        cat ${{ env.CHANGELOG_FILE }}
   
     - name: Commit and push changes
       run: |
