@@ -74,10 +74,16 @@ jobs:
 
       - name: Update [version] and put [tag]. Commit and push
         run: |
-          git add .
-          git commit -m "${{ env.COMMIT_MSG }}"
-          git tag -a v${{ env.TAG_MSG }} -m "update tag"
-          git push -u origin master --tags
+          git add ${{ env.VERSION_CATALOG }}/version.txt
+          git add ${{ env.VERSION_CATALOG }}/version_log.txt
+
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to commit"
+          else
+            git commit -m "${{ env.COMMIT_MSG }}"
+            git tag -a v${{ env.TAG_MSG }} -m "update tag"
+            git push -u origin master --tags
+          fi
 
   udpate_changelog:
     name: (VER) Changelog update
