@@ -58,13 +58,38 @@ jobs:
             id-token: write
         runs-on: ubuntu-latest
         steps: 
-        -   name: Add label to PR
-            uses: actions/github-script@v7
-            with:
+            - name: Find associated PR
+              id: find-pr
+              uses: actions/github-script@v7
+              with:
                 script: |
-                    github.rest.issues.addLabels({
-                    issue_number: context.issue.number,
+                  // Ищем PR, связанный с текущей веткой
+                  const { data: prs } = await github.rest.pulls.list({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    state: 'open',
+                    head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`
+                  });
+                  return prs[0]?.number || 0;
+        
+            - name: Add label to PR
+              if: steps.find-pr.outputs.result != 0
+              uses: actions/github-script@v7
+              with:
+                script: |
+                  github.rest.issues.addLabels({
+                    issue_number: ${{ steps.find-pr.outputs.result }},
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     labels: ['${{ env.LABEL_SEC }}']
-                    })
+                  })
+        # -   name: Add label to PR
+        #     uses: actions/github-script@v7
+        #     with:
+        #         script: |
+        #             github.rest.issues.addLabels({
+        #             issue_number: context.issue.number,
+        #             owner: context.repo.owner,
+        #             repo: context.repo.repo,
+        #             labels: ['${{ env.LABEL_SEC }}']
+        #             })
