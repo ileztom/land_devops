@@ -11,9 +11,15 @@ def format_version(version_list):
 
 def get_version(version_catalog) -> list[int]:
     version = []
-    version_file_name = f"{version_catalog}/version"
+    version_file_name = f"{version_catalog}/version.txt"
     if not os.path.exists(version_file_name):
-        open(version_file_name, "x").close()
+        # Создаем родительский каталог, если его нет
+        os.makedirs(os.path.dirname(version_file_name), exist_ok=True)
+        # Создаем файл с начальной версией
+        with open(version_file_name, "w") as f:
+            f.write("major: 0\nminor: 0\npatch: 0\n")
+        return [0, 0, 0]
+
     with open(version_file_name, "r") as f:
         lines = f.readlines()
 
@@ -21,7 +27,8 @@ def get_version(version_catalog) -> list[int]:
             return [0, 0, 0]
 
         for i, line in enumerate(lines):
-            if i > 2: break
+            if i > 2: 
+                break
             version.append(int(line.split(' ')[1]))
 
     return version
